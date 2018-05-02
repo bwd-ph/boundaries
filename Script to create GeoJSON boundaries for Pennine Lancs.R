@@ -13,6 +13,13 @@ st_read("https://opendata.arcgis.com/datasets/686603e943f948acaa13fb5d2b0f1275_0
   filter(grepl('Blackburn with Darwen|Burnley|Hyndburn|Pendle|Ribble Valley|Rossendale', lad16nm)) %>%
   st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
   st_write("local_authorities.geojson", driver = "GeoJSON")
+  
+# -------------------  CCGs
+# Source: http://geoportal.statistics.gov.uk/datasets/clinical-commissioning-groups-april-2018-full-clipped-boundaries-in-england
+st_read("https://opendata.arcgis.com/datasets/5252644ec26e4bffadf9d3661eef4826_0.geojson") %>% 
+  filter(grepl('Blackburn with Darwen|East Lancashire|Greater Preston', ccg18nm)) %>%
+  st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
+  st_write("CCGs.geojson", driver = "GeoJSON")
 
 # ------------------- Wards (NB these aren't the generalised ones. Takes an age to read.)
 # Source: http://geoportal.statistics.gov.uk/datasets/wards-december-2016-full-clipped-boundaries-in-great-britain
