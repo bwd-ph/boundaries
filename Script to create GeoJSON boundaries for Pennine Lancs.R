@@ -14,10 +14,11 @@ st_read("https://opendata.arcgis.com/datasets/686603e943f948acaa13fb5d2b0f1275_0
   st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
   st_write("local_authorities.geojson", driver = "GeoJSON")
   
+  
 # -------------------  CCGs
-# Source: http://geoportal.statistics.gov.uk/datasets/clinical-commissioning-groups-april-2018-generalised-clipped-boundaries-in-england
-# NB - using 'generalised' because 'full' gives messy outline for Greater Preston
-st_read("https://opendata.arcgis.com/datasets/5252644ec26e4bffadf9d3661eef4826_2.geojson") %>% 
+# Source: http://geoportal.statistics.gov.uk/datasets/clinical-commissioning-groups-april-2018-full-extent-boundaries-in-england
+# NB - using 'full extent' because 'clipped' gives messy outline for Greater Preston
+st_read("https://opendata.arcgis.com/datasets/5252644ec26e4bffadf9d3661eef4826_1.geojson") %>% 
   filter(grepl('Blackburn with Darwen|East Lancashire|Greater Preston', ccg18nm)) %>%
   st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
   st_write("CCGs.geojson", driver = "GeoJSON")
