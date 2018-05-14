@@ -75,6 +75,9 @@ setwd("C:/Users/user/Documents/BwD work/Pennine nhood mapping")
 Pennine_Nhoods <- readOGR(dsn = ".","Nhoods_EmmaRobert_region")
 Pennine_Nhoods <- spTransform(Pennine_Nhoods,CRS("+init=epsg:4326"))
 
+# Remove the upper left part of Ribble Valley, that doesn't have a neighbourhood name
+Pennine_Nhoods <- subset(Pennine_Nhoods, ! is.na(Nhood_Emma))
+
 # Want to remove the approximate boundaries and replace them with the exact ones
 ELancs_Nhoods <- subset(Pennine_Nhoods, ! Nhood_Emma %in% c("Blackburn East","Blackburn West","Blackburn North","Darwen Rural")) # remove approx BwD boundaries
 summary(ELancs_Nhoods)
