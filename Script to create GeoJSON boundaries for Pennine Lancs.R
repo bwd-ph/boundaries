@@ -57,3 +57,31 @@ st_read("https://opendata.arcgis.com/datasets/09b8a48426e3482ebbc0b0c49985c0fb_2
   filter(grepl('E06000008|E07000117|E07000120|E07000122|E07000124|E07000125', lad11cd)) %>% 
   st_as_sf(crs = 4326, coords = c("long", "lat")) %>% 
   st_write("oa.geojson", driver = "GeoJSON")
+
+# ------------------- Neighbourhoods
+# Source: existing shape file of exact BwD neighbourhoods,
+#    plus existing shape file of Pennine neighbourhoods with the BwD ones approximated to be made up of complete LSOAs
+library(rgdal)
+library(geojsonio)
+
+# NB - these are the exact boundaries for BwD nhoods (not approximated to LSOAs)
+setwd("C:/Users/user/Documents/BwD work/Atlases/BwD Data Atlas")
+BwD_Nhoods <- readOGR(dsn = '.',"Four Neighbourhoods_region")
+BwD_Nhoods <- spTransform(BwD_Nhoods,CRS("+init=epsg:4326"))
+summary(BwD_Nhoods)
+
+# NB - these include the approximate boundaries for BwD nhoods
+setwd("C:/Users/user/Documents/BwD work/Pennine nhood mapping")
+Pennine_Nhoods <- readOGR(dsn = ".","Nhoods_EmmaRobert_region")
+Pennine_Nhoods <- spTransform(Pennine_Nhoods,CRS("+init=epsg:4326"))
+
+# Want to remove the approximate boundaries and replace them with the exact ones
+ELancs_Nhoods <- subset(Pennine_Nhoods, ! Nhood_Emma %in% c("Blackburn East","Blackburn West","Blackburn North","Darwen Rural")) # remove approx BwD boundaries
+summary(ELancs_Nhoods)
+colnames(ELancs_Nhoods@data)[1] = "NAME" # Rename 'Nhood_Emma' to 'NAME' to be same as BwD
+BwD_Nhoods <- BwD_Nhoods[,-1] # Remove first data column ('ID') from Bwd to be same as ELancs
+Pennine_Nhoods <- rbind(BwD_Nhoods, ELancs_Nhoods) # Exact BwD nhoods plus ELancs nhoods
+
+setwd("C:/Users/user/Documents/BwD work/Interactive Mapping/GeoJSON files")
+geojson_write(Pennine_Nhoods,geometry = "polygon",file = "Pennine_Nhoods.geojson")
+
