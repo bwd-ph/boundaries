@@ -23,14 +23,14 @@ st_read("https://opendata.arcgis.com/datasets/5252644ec26e4bffadf9d3661eef4826_1
   st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
   st_write("CCGs.geojson", driver = "GeoJSON")
 
-# ------------------- Wards (NB these aren't the generalised ones. Takes an age to read.)
+# ------------------- Wards (NB these aren't the generalised ones. Takes an age to read. Includes the old boundaries for BwD.)
 # Source: http://geoportal.statistics.gov.uk/datasets/wards-december-2016-full-clipped-boundaries-in-great-britain
 st_read("https://opendata.arcgis.com/datasets/afcc88affe5f450e9c03970b237a7999_0.geojson") %>% 
   filter(grepl('Blackburn with Darwen|Burnley|Hyndburn|Pendle|Ribble Valley|Rossendale', lad16nm)) %>%
   st_as_sf(crs = 4326, coords = c("long", "lat")) %>% 
   st_write("wards_full.geojson", driver = "GeoJSON")
 
-# ------------------- Wards (NB these are the generalised ones.)
+# ------------------- Wards (NB these are the generalised ones. Includes the old boundaries for BwD.)
 # Source: http://geoportal.statistics.gov.uk/datasets/wards-december-2016-generalised-clipped-boundaries-in-great-britain
 st_read("https://opendata.arcgis.com/datasets/afcc88affe5f450e9c03970b237a7999_2.geojson") %>% 
   filter(grepl('Blackburn with Darwen|Burnley|Hyndburn|Pendle|Ribble Valley|Rossendale', lad16nm)) %>%
@@ -88,3 +88,41 @@ Pennine_Nhoods <- rbind(BwD_Nhoods, ELancs_Nhoods) # Exact BwD nhoods plus ELanc
 setwd("C:/Users/user/Documents/BwD work/Interactive Mapping/GeoJSON files")
 geojson_write(Pennine_Nhoods,geometry = "polygon",file = "Pennine_Nhoods.geojson")
 
+#
+# ---------------- Wards - amending to include the new ward boundaries for BwD
+#
+setwd("C:/Users/user/Documents/BwD work/Shape Files")
+New_Wards <- readOGR(dsn = '.',"Wards_region")
+New_Wards <- spTransform(New_Wards,CRS("+init=epsg:4326"))
+
+Pennine_Wards <- st_read("https://github.com/bwd-ph/boundaries/blob/master/wards_generalised.geojson?raw=true")
+Pennine_Wards <- as(Pennine_Wards,"Spatial")
+Pennine_Wards <- spTransform(Pennine_Wards,CRS("+init=epsg:4326"))
+
+# Want to remove the (old) BwD wards from Pennine_Wards....
+Pennine_Wards <- subset(Pennine_Wards, ! lad16nm == "Blackburn with Darwen")
+
+# Want to remove extraneous columns from each 
+Pennine_Wards <- Pennine_Wards[,-c(1,4,7,8,9,10,11,12)] # remove various columns
+New_Wards <- New_Wards[,-c(2,3,4,5,6,7,8,10,11,12,13,14,15)]
+
+# Want to strip the word ' Ward' (i.e. final 5 characters) off end of New Ward names
+New_Wards@data$Name <- factor(substr(as.character(New_Wards@data$Name),1,nchar(as.character(New_Wards@data$Name))-5))
+
+# Want to rename columns in Pennine_Wards
+colnames(Pennine_Wards@data) = c("wardCode","wardName","ladCode","ladName")
+
+# Want to switch round columns in New_Wards
+New_Wards <- New_Wards[,c(2,1)]
+
+# Want to rename columns in New_Wards
+colnames(New_Wards@data) = c("wardCode","wardName")
+
+# Want to introduce two extra columns in New_Wards
+New_Wards@data$ladCode <- factor("E06000008")
+New_Wards@data$ladName <- factor("Blackburn with Darwen")
+
+# Want to merge Pennine_Wards with New_Wards
+Wards2018 <- rbind(Pennine_Wards,New_Wards)
+setwd("C:/Users/user/Documents/BwD work/Interactive Mapping/GeoJSON files")
+geojson_write(Wards2018,geometry = "polygon",file = "Wards2018.geojson")
