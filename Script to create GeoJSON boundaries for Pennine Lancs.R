@@ -83,7 +83,11 @@ ELancs_Nhoods <- subset(Pennine_Nhoods, ! Nhood_Emma %in% c("Blackburn East","Bl
 summary(ELancs_Nhoods)
 colnames(ELancs_Nhoods@data)[1] = "NAME" # Rename 'Nhood_Emma' to 'NAME' to be same as BwD
 BwD_Nhoods <- BwD_Nhoods[,-1] # Remove first data column ('ID') from Bwd to be same as ELancs
-Pennine_Nhoods <- rbind(BwD_Nhoods, ELancs_Nhoods) # Exact BwD nhoods plus ELancs nhoods
+
+### Feb 2020 - temporarily removing all except the BwD neighbourhoods as the E Lancs ones are under review
+
+#Pennine_Nhoods <- rbind(BwD_Nhoods, ELancs_Nhoods) # Exact BwD nhoods plus ELancs nhoods
+Pennine_Nhoods <- BwD_Nhoods # NB - this line is only temporary. Reinstate preceding line when ELancs nhoods have been reviewed
 
 setwd("C:/Users/user/Documents/BwD work/Interactive Mapping/GeoJSON files")
 geojson_write(Pennine_Nhoods,geometry = "polygon",file = "Pennine_Nhoods.geojson")
@@ -126,3 +130,59 @@ New_Wards@data$ladName <- factor("Blackburn with Darwen")
 Wards2018 <- rbind(Pennine_Wards,New_Wards)
 setwd("C:/Users/user/Documents/BwD work/Interactive Mapping/GeoJSON files")
 geojson_write(Wards2018,geometry = "polygon",file = "Wards2018.geojson")
+
+# Pennine Practices
+setwd("C:/Users/user/Documents/BwD work/Shape Files")
+Practices <- readOGR(dsn = '.',"GeocodedPractices_point")
+Practices <- spTransform(Practices,CRS("+init=epsg:4326"))
+setwd("C:/Users/user/Documents/BwD work/Interactive Mapping/GeoJSON files")
+geojson_write(Practices,geometry = "point",file = "PenninePractices.geojson")
+
+# NB - Following code is for the different purpose of dragging geojson files onto CDRC web maps
+
+# ------------------- Just BwD (for purpose of dragging onto CDRC maps) 
+# Source: http://geoportal.statistics.gov.uk/datasets/local-authority-districts-december-2016-full-clipped-boundaries-in-great-britain
+st_read("https://opendata.arcgis.com/datasets/686603e943f948acaa13fb5d2b0f1275_0.geojson") %>% 
+  filter(grepl('Blackburn with Darwen', lad16nm)) %>%
+  st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
+  st_write("BwD.geojson", driver = "GeoJSON")
+  
+# ------------------- Just England (for purpose of dragging onto CDRC maps) 
+# Source: http://geoportal.statistics.gov.uk/datasets/countries-december-2017-ultra-generalised-clipped-boundaries-in-great-britain
+st_read("https://opendata.arcgis.com/datasets/f2c2211ff185418484566b2b7a5e1300_4.geojson") %>% 
+  filter(grepl('England', ctry17nm)) %>%
+  st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
+  st_write("England.geojson", driver = "GeoJSON")  
+  
+# ------------------- England with a BwD hole (for purpose of dragging onto CDRC maps) 
+BwD <- st_read("BwD.geojson")
+England <- st_read("England.geojson")
+BwD_Spatial <- as(BwD,"Spatial")
+England_Spatial <- as(England,"Spatial")
+
+# From https://stackoverflow.com/questions/29624895/how-to-add-a-hole-to-a-polygon-within-a-spatialpolygonsdataframe
+library("sp")
+AddHoleToPolygon <-function(poly,hole){
+    # invert the coordinates for Polygons to flag it as a hole
+    coordsHole <-  hole@polygons[[1]]@Polygons[[1]]@coords
+    newHole <- Polygon(coordsHole,hole=TRUE)
+
+    # punch the hole in the main poly
+    listPol <- poly@polygons[[1]]@Polygons
+    listPol[[length(listPol)+1]] <- newHole
+    punch <- Polygons(listPol,poly@polygons[[1]]@ID)
+
+    # make the polygon a SpatialPolygonsDataFrame as the entry
+    new <- SpatialPolygons(list(punch),proj4string=poly@proj4string)
+    new <- SpatialPolygonsDataFrame(new,data=as(poly,"data.frame"))
+
+    return(new)
+}
+AddHoleToPolygon(England_Spatial,BwD_Spatial)%>%
+  st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
+  st_write("BwD_mask.geojson", driver = "GeoJSON")
+
+st_read("https://opendata.arcgis.com/datasets/f2c2211ff185418484566b2b7a5e1300_4.geojson") %>% 
+  filter(grepl('England', ctry17nm)) %>%
+  st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
+  st_write("England.geojson", driver = "GeoJSON") 
